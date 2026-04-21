@@ -9,34 +9,21 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 // -------------------------
-// FORMAT TIME
+// TIME FORMAT (STABLE, NO μs FAKE)
 // -------------------------
 function formatTime(ms) {
-  if (ms < 1) return (ms * 1000).toFixed(2) + " μs";
-  return ms.toFixed(2) + " ms";
+  // честный вывод без иллюзий точности
+  if (ms < 0.01) return "< 0.01 ms";
+  return ms.toFixed(4) + " ms";
 }
 
 // -------------------------
-// MEASURE (ВАЖНО)
-// -------------------------
-function measure(fn, repeats = 10000) {
-  const start = performance.now();
-
-  for (let i = 0; i < repeats; i++) {
-    fn();
-  }
-
-  const end = performance.now();
-  return (end - start) / repeats;
-}
-
-// -------------------------
-// DRAW
+// DRAW POLYGON
 // -------------------------
 function draw(poly) {
   if (!poly || poly.length < 3) return;
 
-  ctx.clearRect(0, 0, 500, 500);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.beginPath();
   ctx.moveTo(poly[0].x + 250, poly[0].y + 250);
@@ -62,10 +49,8 @@ window.generate = () => {
   }
 
   polygon = generatePolygon(n, 120);
-
   draw(polygon);
 
-  // reset UI
   document.getElementById("gauss").innerText = "-";
   document.getElementById("mc").innerText = "-";
   document.getElementById("error").innerText = "-";
@@ -76,9 +61,9 @@ window.generate = () => {
 // ANALYZE
 // -------------------------
 window.analyze = () => {
-  const iterations = +document.getElementById("iterations").value;
+  const M = +document.getElementById("iterations").value;
 
-  if (!Number.isFinite(iterations) || iterations < 1) {
+  if (!Number.isFinite(M) || M < 1) {
     alert("Iterations must be > 0");
     return;
   }
@@ -88,44 +73,45 @@ window.analyze = () => {
     return;
   }
 
-  // --- GAUSS ---
-  const gaussTime = measure(() => shoelaceArea(polygon));
+  // GAUSS
+  const t1 = performance.now();
   const gauss = shoelaceArea(polygon);
+  const t2 = performance.now();
 
-  // --- MONTE CARLO ---
-  const mcTime = measure(() => monteCarloArea(polygon, iterations), 100);
-  const mc = monteCarloArea(polygon, iterations);
+  // MONTE CARLO
+  const t3 = performance.now();
+  const mc = monteCarloArea(polygon, M);
+  const t4 = performance.now();
 
-  // --- JSTS ---
+  // JSTS (REFERENCE)
   const jsts = jstsArea(polygon);
 
-  const err = errorPercent(gauss, mc);
+  // ERROR
+  const err = errorPercent(jsts, mc);
 
-  // OUTPUT
-  document.getElementById("gauss").innerText = gauss.toFixed(2);
-  document.getElementById("mc").innerText = mc.toFixed(2);
-  document.getElementById("error").innerText = err.toFixed(2);
+  // UI OUTPUT
+  document.getElementById("gauss").innerText = gauss.toFixed(4);
+  document.getElementById("mc").innerText = mc.toFixed(4);
+  document.getElementById("error").innerText = err.toFixed(4);
 
   document.getElementById("jstsResult").innerText = jsts.toFixed(4);
 
-  document.getElementById("timeG").innerText = formatTime(gaussTime);
+  document.getElementById("timeG").innerText = formatTime(t2 - t1);
 
-  document.getElementById("timeMC").innerText = formatTime(mcTime);
+  document.getElementById("timeMC").innerText = formatTime(t4 - t3);
 
-  runExperiment();
+  runExperiment(jsts);
   runBenchmark();
 };
 
 // -------------------------
-// ERROR GRAPH
+// ERROR CONVERGENCE GRAPH
 // -------------------------
-function runExperiment() {
+function runExperiment(jsts) {
   const steps = [100, 500, 1000, 5000, 10000, 20000];
 
-  const gauss = shoelaceArea(polygon);
-
   const errors = steps.map((s) =>
-    errorPercent(gauss, monteCarloArea(polygon, s)),
+    errorPercent(jsts, monteCarloArea(polygon, s)),
   );
 
   if (chart) chart.destroy();
@@ -136,7 +122,7 @@ function runExperiment() {
       labels: steps,
       datasets: [
         {
-          label: "Monte Carlo Error %",
+          label: "Monte Carlo error (%)",
           data: errors,
         },
       ],
@@ -145,11 +131,11 @@ function runExperiment() {
 }
 
 // -------------------------
-// BENCHMARK
+// BENCHMARK (SAFE VERSION)
 // -------------------------
 function runBenchmark() {
   const sizes = [10, 50, 100, 1000];
-  const iterations = 10000;
+  const M = 20000; // снижено для стабильности
 
   const table = document.getElementById("benchmarkTable");
   table.innerHTML = "";
@@ -157,14 +143,27 @@ function runBenchmark() {
   sizes.forEach((n) => {
     const poly = generatePolygon(n, 120);
 
-    const gaussTime = measure(() => shoelaceArea(poly));
-    const mcTime = measure(() => monteCarloArea(poly, iterations), 50);
+    // GAUSS
+    const t1 = performance.now();
+    shoelaceArea(poly);
+    const t2 = performance.now();
+
+    // MONTE CARLO
+    const t3 = performance.now();
+    monteCarloArea(poly, M);
+    const t4 = performance.now();
+
+    // JSTS
+    const t5 = performance.now();
+    jstsArea(poly);
+    const t6 = performance.now();
 
     table.innerHTML += `
       <tr>
         <td>${n}</td>
-        <td>${formatTime(gaussTime)}</td>
-        <td>${formatTime(mcTime)}</td>
+        <td>${formatTime(t2 - t1)}</td>
+        <td>${formatTime(t4 - t3)}</td>
+        <td>${formatTime(t6 - t5)}</td>
       </tr>
     `;
   });
