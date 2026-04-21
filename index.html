@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Polygon Area Lab</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsts/2.7.1/jsts.min.js"></script>
+
+    <style>
+      body {
+        font-family:
+          JetBrains Mono,
+          monospace;
+        background: #0f172a;
+        color: white;
+        text-align: center;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      input,
+      button {
+        padding: 8px;
+        border-radius: 6px;
+        border: none;
+      }
+
+      button {
+        cursor: pointer;
+        background: #2563eb;
+        color: white;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+
+      canvas {
+        background: #111827;
+        border: 1px solid #333;
+        display: block;
+        margin: 15px auto;
+      }
+
+      #canvas {
+        width: 500px;
+        height: 500px;
+      }
+
+      #chart {
+        max-width: 400px;
+        max-height: 220px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        max-width: 500px;
+        margin: auto;
+      }
+
+      table {
+        margin: 20px auto;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid #444;
+        padding: 6px 10px;
+      }
+      .layout {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 30px;
+        margin-top: 20px;
+      }
+
+      .left {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .right {
+        min-width: 300px;
+        max-height: 700px;
+        overflow-y: auto;
+        background: #0b1220;
+        padding: 10px;
+        border: 1px solid #333;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Polygon Area: Gauss vs Monte Carlo</h1>
+
+    <div class="layout">
+      <!-- LEFT SIDE -->
+      <div class="left">
+        <div class="controls">
+          <input id="vertices" type="number" value="50" min="3" />
+          <input id="iterations" type="number" value="10000" min="1" />
+
+          <button onclick="generate()">Generate</button>
+          <button onclick="analyze()">Analyze</button>
+          <button onclick="saveCanvas()">Save Polygon</button>
+          <button onclick="saveChart()">Save Chart</button>
+        </div>
+
+        <canvas id="canvas" width="500" height="500"></canvas>
+
+        <canvas id="chart"></canvas>
+      </div>
+
+      <!-- RIGHT SIDE -->
+      <div class="right">
+        <h2>Benchmark</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>N</th>
+              <th>Gauss (μs)</th>
+              <th>Monte Carlo (ms)</th>
+            </tr>
+          </thead>
+          <tbody id="benchmarkTable"></tbody>
+        </table>
+        <div class="stats">
+          <div>JSTS: <span id="jstsResult">-</span></div>
+          <div>Gauss: <span id="gauss">-</span></div>
+          <div>Monte Carlo: <span id="mc">-</span></div>
+          <div>Error: <span id="error">-</span></div>
+          <div>Time Gauss: <span id="timeG">-</span></div>
+          <div>Time MC: <span id="timeMC">-</span></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
